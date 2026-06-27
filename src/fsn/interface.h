@@ -1,12 +1,5 @@
-module;
-
-export module fsn:interface;
-
-import std;
-import codegen;
-
-//https://gcc.gnu.org/bugzilla/show_bug.cgi?id=124582 fixed in 16.2
-//import std;
+#include <type_traits>
+#include <fsn/codegen.h>
 
 namespace fsn {
 
@@ -16,13 +9,19 @@ namespace fsn {
  *
  * @tparam I - should be a struct with required methods of interface
  */
-export template <typename I>
+template <typename I>
 requires std::is_class_v<I>
 struct Interface {
     template <typename T>
     // NOLINTNEXTLINE(hicpp-explicit-conversions)
-    Interface(T _) {}
-};
+    Interface(T _) {
+    }
 
+#if defined(__GNUC__) && !defined(__clang__)
+    typename [:genVtable<I>():] vtable;
+#else
+    struct VT {} vtable;
+#endif
+};
 
 }  // namespace fsn

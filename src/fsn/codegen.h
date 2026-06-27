@@ -1,9 +1,5 @@
-module;
-
 #include <meta>
-#include <functional>
-
-export module codegen;
+#include <string>
 
 namespace fsn {
 
@@ -34,14 +30,21 @@ namespace fsn {
  * @tparam I - "Interface" like struct/class with methods declaration
  * @return meta descriptor of generated vtable
  */
-struct Foo {
-    std::string s;
-    int b;
-    int a;
-};
-export template <typename I>
-consteval std::meta::info genVtable() {
+#if defined(__GNUC__) && !defined(__clang__)
+template <typename I>
+consteval auto genVtable() {
+    struct Foo {
+        std::string s;
+        int b;
+        int a;
+    };
     return ^^Foo;
 }
+#else
+template <typename I>
+consteval int genVtable() {
+    return 0;
+}
+#endif
 
 }  // namespace fsn
