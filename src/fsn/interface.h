@@ -1,3 +1,4 @@
+#include <memory>
 #include <type_traits>
 #include <fsn/codegen.h>
 
@@ -14,14 +15,34 @@ requires std::is_class_v<I>
 struct Interface {
     template <typename T>
     // NOLINTNEXTLINE(hicpp-explicit-conversions)
-    Interface(T _) {
+    Interface([[maybe_unused]] T x) : ptr(std::make_shared<T>(std::move(x))) {
+#if defined(__GNUC__) && !defined(__clang__)
+        fsn::fillVTable<I>(vtable, static_cast<T*>(ptr.get()));
+#endif
     }
 
+private:
 #if defined(__GNUC__) && !defined(__clang__)
-    typename [:genVtable<I>():] vtable;
+    struct VTable;
+    consteval {
+        fsn::makeVtable<I>(^^VTable);
+    }
 #else
-    struct VT {} vtable;
+    struct VTable {};
 #endif
+    VTable vtable;
+
+public:
+    VTable* operator->() {
+        return &vtable;
+    }
+    const VTable* operator->() const {
+        return &vtable;
+    }
+
+private:
+    std::shared_ptr<void> ptr;
+
 };
 
 }  // namespace fsn
