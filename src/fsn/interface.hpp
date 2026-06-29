@@ -1,6 +1,7 @@
+#include <fsn/codegen.hpp>
+
 #include <memory>
 #include <type_traits>
-#include <fsn/codegen.h>
 
 namespace fsn {
 
@@ -18,31 +19,26 @@ struct Interface {
     Interface([[maybe_unused]] T x) : ptr(std::make_shared<T>(std::move(x))) {
 #if defined(__GNUC__) && !defined(__clang__)
         fsn::fillVTable<I>(vtable, static_cast<T*>(ptr.get()));
+#else
+        static_assert(false, "Interface supported only in gcc16> with reflection support");
 #endif
     }
 
 private:
 #if defined(__GNUC__) && !defined(__clang__)
     struct VTable;
-    consteval {
-        fsn::makeVtable<I>(^^VTable);
-    }
+    consteval { fsn::makeVtable<I>(^^VTable); }
 #else
     struct VTable {};
 #endif
     VTable vtable;
 
 public:
-    VTable* operator->() {
-        return &vtable;
-    }
-    const VTable* operator->() const {
-        return &vtable;
-    }
+    VTable* operator->() { return &vtable; }
+    const VTable* operator->() const { return &vtable; }
 
 private:
     std::shared_ptr<void> ptr;
-
 };
 
 }  // namespace fsn
