@@ -1,3 +1,5 @@
+#pragma once
+
 #include <fsn/codegen.hpp>
 
 #include <memory>
@@ -16,7 +18,7 @@ requires std::is_class_v<I>
 struct Interface {
     template <typename T>
     // NOLINTNEXTLINE(hicpp-explicit-conversions)
-    Interface([[maybe_unused]] T x) : ptr(std::make_shared<T>(std::move(x))) {
+    Interface(T x) : ptr(std::make_shared<T>(std::move(x))) {
 #if defined(__GNUC__) && !defined(__clang__)
         fsn::fillVTable<I>(vtable, static_cast<T*>(ptr.get()));
 #else

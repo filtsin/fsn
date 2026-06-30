@@ -1,3 +1,5 @@
+#pragma once
+
 #include <algorithm>
 #include <functional>
 #include <meta>
@@ -29,7 +31,7 @@ namespace details {
 
 template <size_t N = MaxLen>
 struct FnDescr {
-    // Real name of function in interface
+    // Real name of function
     std::array<char, N> realName;
 };
 
@@ -55,8 +57,7 @@ namespace meta = std::meta;
 
 namespace details {
 
-template <meta::info m>
-consteval meta::info makeVtableMember(const FnOptions& opts) {
+consteval meta::info makeVtableMember(meta::info m, const FnOptions& opts) {
     auto name = opts.name[0] == '\0' ? meta::identifier_of(m) : std::string_view{opts.name};
 
     FnDescr<> genDescr{
@@ -107,7 +108,7 @@ consteval meta::info makeVtableMember(const FnOptions& opts) {
 template <typename I>
 consteval meta::info makeVtable(meta::info vtable) {
     std::vector<meta::info> resMembers;
-    template for (constexpr auto m : std::define_static_array(details::memberFunctions(^^I))) {
+    template for (constexpr auto m : std::define_static_array(details::memberFunctionsWithBases(^^I))) {
         static_assert(!meta::has_template_arguments(m), "Template methods in interface aren't supported");
 
         constexpr auto fnOpts = std::define_static_array(meta::annotations_of_with_type(m, ^^FnOptions));
@@ -121,7 +122,7 @@ consteval meta::info makeVtable(meta::info vtable) {
             return FnOptions{};
         }();
 
-        resMembers.emplace_back(details::makeVtableMember<m>(opts));
+        resMembers.emplace_back(details::makeVtableMember(m, opts));
     }
 
     // clang-format off
@@ -162,7 +163,9 @@ constexpr void fillVTable(V& v, [[maybe_unused]] T* p) {
                 "InterfaceIncompatibleError<Type, Interface, FunctionName, FunctionType>: your Type doesn't implement "
                 "Interface because it does not contain FunctionName with FunctionType as required by the Interface");
         } else {
-            v.[:m:] = [p](auto&&... t) { return p->[:pMember:](t...); };
+            v.[:m:] = [p](auto&&... t) noexcept(meta::is_noexcept(fnType)) {
+                return p->[:pMember:](std::forward<decltype(t)>(t)...);
+            };
         }
     }
 }
