@@ -17,9 +17,7 @@ struct Random1 {
 
 struct Random2 {
     int random() const noexcept { return 6; }
-    int get42() {
-        return 42;
-    }
+    int get42() { return 42; }
 };
 
 }  // namespace
@@ -31,8 +29,28 @@ TEST_CASE("Interface instance") {
 }
 
 TEST_CASE("Interface2 instance") {
-    fsn::Interface<Interface2> i { Random2{} };
+    fsn::Interface<Interface2> i{Random2{}};
 
     CHECK(i->random() == 6);
     CHECK(i->get42() == 42);
 }
+
+namespace {
+
+struct Interface1 {
+    void foo();
+};
+
+struct Interface3 {
+    void foo();
+};
+
+struct Int : Interface1, Interface3 {};
+
+struct Foo {
+    void foo() {}
+};
+
+TEST_CASE("Deduplication same methods") { fsn::Interface<Int> i = Foo{}; }
+
+}  // namespace

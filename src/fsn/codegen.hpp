@@ -108,7 +108,9 @@ consteval meta::info makeVtableMember(meta::info m, const FnOptions& opts) {
 template <typename I>
 consteval meta::info makeVtable(meta::info vtable) {
     std::vector<meta::info> resMembers;
-    template for (constexpr auto m : std::define_static_array(details::memberFunctionsWithBases(^^I))) {
+
+    template for (constexpr auto m :
+                  std::define_static_array(details::deduplicateMethods(details::memberFunctionsWithBases(^^I)))) {
         static_assert(!meta::has_template_arguments(m), "Template methods in interface aren't supported");
 
         constexpr auto fnOpts = std::define_static_array(meta::annotations_of_with_type(m, ^^FnOptions));
