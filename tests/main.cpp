@@ -4,8 +4,8 @@
 #include <meta>
 
 namespace {
-int docMain() {
-    doctest::Context context;
+int docMain(int argc, char** argv) {
+    doctest::Context context(argc, argv);
 
     int res = context.run();
 
@@ -13,4 +13,4 @@ int docMain() {
 }
 }  // namespace
 
-int main() { return docMain(); }
+int main(int argc, char** argv) { return docMain(argc, argv); }
