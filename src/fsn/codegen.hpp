@@ -74,6 +74,60 @@ consteval meta::info makeVtableMember(meta::info m, const FnOptions& opts) {
     );
     // clang-format on
 }
+
+consteval FnOptions fnOptions(meta::info m) {
+    auto fnOpts = meta::annotations_of_with_type(m, ^^FnOptions);
+
+    if (fnOpts.size() > 1) {
+        throw "Multiple 'FnOptions' for one method is not allowed";
+    }
+
+    if (fnOpts.empty()) {
+        return FnOptions{};
+    }
+
+    return meta::extract<FnOptions>(fnOpts[0]);
+}
+
+/**
+ * @brief Remove all same methods (same name and type) from `types` (it could happened while collecting
+ * methods of base classes) to avoid compile error.
+ *
+ * If we have different methods (same name and different types) we get compile error in `makeVtable` because
+ * generated aggregate will have 2 fields with same name.
+ */
+consteval std::vector<meta::info> deduplicateMethods(std::vector<meta::info> types) {
+    std::vector<meta::info> result;
+
+    for (auto fn : types) {
+        bool isDuplicate{};
+
+        for (auto existingFn : result) {
+            if (meta::identifier_of(existingFn) != meta::identifier_of(fn)) {
+                continue;
+            }
+
+            auto existingOpts = fnOptions(existingFn);
+            auto newOpts = fnOptions(fn);
+
+            if (existingOpts.name != newOpts.name) {
+                continue;
+            }
+
+            if (meta::type_of(existingFn) == meta::type_of(fn)) {
+                isDuplicate = true;
+                break;
+            }
+        }
+
+        if (!isDuplicate) {
+            result.emplace_back(fn);
+        }
+    }
+
+    return result;
+}
+
 }  // namespace details
 
 /**
@@ -112,19 +166,7 @@ consteval meta::info makeVtable(meta::info vtable) {
     template for (constexpr auto m :
                   std::define_static_array(details::deduplicateMethods(details::memberFunctionsWithBases(^^I)))) {
         static_assert(!meta::has_template_arguments(m), "Template methods in interface aren't supported");
-
-        constexpr auto fnOpts = std::define_static_array(meta::annotations_of_with_type(m, ^^FnOptions));
-        static_assert(fnOpts.size() <= 1, "Multiple fn options definition can't be supported");
-
-        FnOptions opts = [&fnOpts]() {
-            if constexpr (!fnOpts.empty()) {
-                constexpr auto constant = meta::constant_of(fnOpts[0]);
-                return [:constant:];
-            }
-            return FnOptions{};
-        }();
-
-        resMembers.emplace_back(details::makeVtableMember(m, opts));
+        resMembers.emplace_back(details::makeVtableMember(m, details::fnOptions(m)));
     }
 
     // clang-format off

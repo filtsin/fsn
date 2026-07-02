@@ -20,5 +20,5 @@ TEST_CASE("Methods generation") {
     FooObj foo{.foo = []() noexcept {}, .bar = [](int a) -> int { return a; }, .myname = []() {}};
 
     INFO(fsn::details::debugAggregate<FooObj>());
-    CHECK(foo.bar(1) == 2);
+    CHECK(foo.bar(1) == 1);
 }

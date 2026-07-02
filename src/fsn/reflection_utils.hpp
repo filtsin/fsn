@@ -57,53 +57,6 @@ consteval std::vector<meta::info> memberFunctionsWithBases(meta::info type) {
 }
 
 /**
- * @class MethodsDuplicationWithDifferentTypesException
- * @brief Exception if method `name` have different types in interface
- *
- */
-struct MethodHaveDifferentTypesException {
-    std::string_view name;
-    meta::info fType;
-    meta::info sType;
-};
-
-/**
- * @brief Remove all same methods (same name and type) from `types` (it could happened while collecting
- * methods of base classes) to avoid compile error.
- * If this method finds the same name and different type of methods it will emit compile error
- */
-consteval std::vector<meta::info> deduplicateMethods(std::vector<meta::info> types) {
-    std::vector<meta::info> result;
-
-    for (auto fn : types) {
-        bool isDuplicate{};
-
-        for (auto existingFn : result) {
-            if (meta::identifier_of(existingFn) != meta::identifier_of(fn)) {
-                continue;
-            }
-
-            if (meta::type_of(existingFn) == meta::type_of(fn)) {
-                isDuplicate = true;
-                break;
-            } else {
-                throw MethodHaveDifferentTypesException{
-                    .name = meta::identifier_of(fn),
-                    .fType = meta::type_of(existingFn),
-                    .sType = meta::type_of(fn),
-                };
-            }
-        }
-
-        if (!isDuplicate) {
-            result.emplace_back(fn);
-        }
-    }
-
-    return result;
-}
-
-/**
  * @class MemberFunctionError
  * @brief Special marker of error to generate pretty message about that happened to user
  *
